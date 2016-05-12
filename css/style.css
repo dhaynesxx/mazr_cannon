@@ -1,0 +1,17 @@
+* {  margin: 0; padding: 0; border: 0;}
+body{
+    /*background-image: url('../starfield.jpg');
+    background-size: cover;*/
+    overflow: hidden;
+    color:#EEEEEE;
+    font-family:monospace;
+    font-size: 11px;
+}
+#canvas{
+    position: absolute;
+    top:0;
+    left:0;
+    pointer-events:auto;
+    width:100%;
+    height:100%;
+}
