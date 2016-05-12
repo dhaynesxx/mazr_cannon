@@ -5,6 +5,8 @@ app.cannonPieces = [];
 app.threeBoard = [];
 app.cannonBoard = [];
 
+app.currentSide = 'top';
+
 app.startAnimatePos = 1;
 
 app.isMobile = false;
@@ -49,74 +51,98 @@ app.init = function() {
       app.axes = new THREE.AxisHelper(400);
       app.scene.add( app.axes );
 
-      app.boardTHREE = new THREE.Object3D();
-      app.boardTHREE.castShadow = true;
-      app.boardTHREE.receiveShadow = true;
-      app.boardTHREE.position.set(0,0,0);
-      app.scene.add( app.boardTHREE );
+      app.boardTop = new THREE.Object3D();
+      app.boardTop.castShadow = true;
+      app.boardTop.receiveShadow = true;
+      app.boardTop.position.set(0,0,0);
+      app.scene.add( app.boardTop );
 
-      // app.boardLeft = new THREE.Object3D();
-      // app.boardLeft.position.set(-400,0,0);
-      // ///set boardThree position relative to board left position
-      // app.boardLeft.add(app.boardTHREE);
-      // app.scene.add( app.boardLeft);
+      app.boardLeft = new THREE.Object3D();
+      app.boardLeft.castShadow = true;
+      app.boardLeft.receiveShadow = true;
+      app.boardLeft.position.set(-200,-200,0);
+      // app.scene.add( app.boardLeft );
+
+      app.boardFront = new THREE.Object3D();
+      app.boardFront.castShadow = true;
+      app.boardFront.receiveShadow = true;
+      app.boardFront.position.set(0,-200,200);
+
+      app.boardBack = new THREE.Object3D();
+      app.boardBack.castShadow = true;
+      app.boardBack.receiveShadow = true;
+      app.boardBack.position.set(0,-200,-200);
+
+      app.boardRight = new THREE.Object3D();
+      app.boardRight.castShadow = true;
+      app.boardRight.receiveShadow = true;
+      app.boardRight.position.set(200,-200,200);
+
+      app.boardBottom = new THREE.Object3D();
+      app.boardBottom.castShadow = true;
+      app.boardBottom.receiveShadow = true;
+      app.boardBottom.position.set(0,-400,0);
 
       app.initCannon();
 };
-// app.selectGroup = function(name, world) {
-//       var group;
-//       switch (name) {
-//             case 'cube':
-//                   if (world === 'three') {group = app.threeCube;}
-//                   else if (world === 'cannon') {group = app.cannonCube;}
-//                   break;
-//             case 'top':
-//                   if (world === 'three') {group = app.threeTopGroup;}
-//                   else if (world === 'cannon') {group = app.cannonTopGroup;}
-//                   break;
-//             case 'bottom':
-//                   if (world === 'three') {group = app.threeBottomGroup;}
-//                   else if (world === 'cannon') {group = app.cannonBottomGroup;}
-//                   break;
-//             case 'front':
-//                   if (world === 'three') {group = app.threeFrontGroup;}
-//                   else if (world === 'cannon') {group = app.cannonFrontGroup;}
-//                   break;
-//             case 'back':
-//                   if (world === 'three') {group = app.threeBackGroup;}
-//                   else if (world === 'cannon') {group = app.cannonBackGroup;}
-//                   break;
-//             case 'left':
-//                   if (world === 'three') {group = app.threeLeftGroup;}
-//                   else if (world === 'cannon') {group = app.cannonLeftGroup;}
-//                   break;
-//             case 'right':
-//                   if (world === 'three') {group = app.threeRightGroup;}
-//                   else if (world === 'cannon') {group = app.cannonRightGroup;}
-//                   break;
-//       }
-//       return group;
-// };
 
-app.addMap = function(size, pos, type) {
-      // var cannonArray = app.selectGroup( group, 'cannon' );
-      // var threeArray = app.selectGroup( group, 'three' );
-      var cannonArray = app.cannonBoard;
-      var threeArray = app.threeBoard;
+app.changeBoard = function(x,y,z) {
+      if (app.currentSide === 'front') {
+            app.scene.remove(app.boardTop);
+            app.scene.add(app.boardFront);
+            app.moveGround(-91, 0, 0);
+            app.boardFront.position.set(x + 190, y - 10 , z + 190);
+            app.camera.position.set(x + 190, y + 390, z + 490);
+            app.camera.lookAt(app.boardFront.position);
+            app.light.position.set(x + 190, y + 390, z + 490);
+            app.light.target.position.set(app.scene.position);
+      } else if (app.currentSide === 'left') {
+            app.scene.remove(app.boardFront);
+            app.scene.add(app.boardLeft);
+            app.moveGround(0, 90, -91);
+            app.boardLeft.position.set(x - 190, y - 10, z - 190);
+            app.camera.position.set(x - 190, y + 390, z + 490);
+            app.camera.lookAt(app.boardFront.position);
+            app.light.position.set(x - 190, y + 390, z + 490);
+            app.light.target.position.set(app.scene.position);
+      } else if (app.currentSide === 'back') {
+            app.scene.remove(app.boardLeft);
+            app.scene.add(app.boardBack);
+            app.moveGround(-90,0,0);
+            app.boardFront.position.set(x + 190, y - 10 , z + 190);
+            app.camera.position.set(x + 190, y + 390, z + 490);
+            app.camera.lookAt(app.boardFront.position);
+            app.light.position.set(x + 190, y + 390, z + 490);
+            app.light.target.position.set(app.boardFront.position);
+      } else if (app.currentSide === 'right') {
+            app.scene.remove(app.boardBack);
+            app.scene.add(app.boardRight);
+            app.moveGround(-90,0,0);
+            app.boardFront.position.set(x + 190, y - 10 , z + 190);
+            app.camera.position.set(x + 190, y + 390, z + 490);
+            app.camera.lookAt(app.boardFront.position);
+            app.light.position.set(x + 190, y + 390, z + 490);
+            app.light.target.position.set(app.boardFront.position);
+      } else if (app.currentSide === 'bottom') {
+            app.scene.remove(app.boardRight);
+            app.scene.add(app.boardBottom);
+            app.moveGround(-90,0,0);
+            app.boardFront.position.set(x + 190, y - 10 , z + 190);
+            app.camera.position.set(x + 190, y + 390, z + 490);
+            app.camera.lookAt(app.boardFront.position);
+            app.light.position.set(x + 190, y + 390, z + 490);
+            app.light.target.position.set(app.boardFront.position);
+      } else if (app.currentSide === 'finish') {
+            // app.scene.remove(app.boardBottom);
+            // app.scene.add(app.boardFinish);
+            // app.moveGround(-90,0,0);
+            // app.boardFront.position.set(x + 190, y - 10 , z + 190);
+      }
+};
 
-      var halfExtents = new CANNON.Vec3(size[0]/2,size[1]/2,size[2]/2);
-      var boxShape = new CANNON.Box(halfExtents);
-      var boxBody = new CANNON.Body({ mass:0 });
-      boxBody.addShape( boxShape );
-      boxBody.position.set( pos[0], pos[1], pos[2] );
-      boxBody.allowSleep = false;
-      boxBody.fixedRotation = false;
-      // boxBody.linearDamping = 0.01;
-      // boxBody.angularDamping = 0.01;
-      app.world.add( boxBody );
-      cannonArray.push( boxBody );
+app.addRender = function(size, pos, type ) {
 
-      var boxGeometry = new THREE.BoxGeometry(halfExtents.x*2,halfExtents.y*2,halfExtents.z*2);
+      var boxGeometry = new THREE.BoxGeometry(size[0],size[1],size[2]);
       var boxMaterial;
       if (type === 'ground') {
             boxMaterial = new THREE.MeshLambertMaterial({
@@ -126,12 +152,42 @@ app.addMap = function(size, pos, type) {
             boxMaterial = new THREE.MeshLambertMaterial({
                 color: 0xFF69B4
             });
+      } else if (type === 'change') {
+            boxMaterial = new THREE.MeshLambertMaterial({
+                color: 0xADD8E6
+            });
       }
-      var boxMesh = new THREE.Mesh( boxGeometry, boxMaterial );
-      boxMesh.position.set( pos[0], pos[1], pos[2] );
-      boxMesh.recieveShadow = true;
-      threeArray.push( boxMesh );
-      app.boardTHREE.add ( boxMesh );
+      var topMesh = new THREE.Mesh( boxGeometry, boxMaterial );
+      topMesh.position.set( pos[0], pos[1], pos[2] );
+      app.boardTop.add ( topMesh );
+      var bottomMesh = new THREE.Mesh( boxGeometry, boxMaterial );
+      bottomMesh.position.set( pos[0], pos[1] + 400, pos[2] );
+      app.boardBottom.add ( bottomMesh );
+      var frontMesh = new THREE.Mesh( boxGeometry, boxMaterial );
+      frontMesh.position.set( pos[0], pos[1] + 200, pos[2] - 200 );
+      app.boardFront.add ( frontMesh );
+      var backMesh = new THREE.Mesh( boxGeometry, boxMaterial );
+      backMesh.position.set( pos[0], pos[1] + 200, pos[2] + 200 );
+      app.boardBack.add ( backMesh );
+      var leftMesh = new THREE.Mesh( boxGeometry, boxMaterial );
+      leftMesh.position.set( pos[0] + 200, pos[1] + 200, pos[2] );
+      app.boardLeft.add ( leftMesh );
+      var rightMesh = new THREE.Mesh( boxGeometry, boxMaterial );
+      rightMesh.position.set( pos[0] - 200, pos[1] + 200, pos[2] - 200 );
+      app.boardRight.add ( rightMesh );
+};
+
+app.addCannon = function(size, pos) {
+      var cannonArray = app.cannonBoard;
+      var halfExtents = new CANNON.Vec3(size[0]/2,size[1]/2,size[2]/2);
+      var boxShape = new CANNON.Box(halfExtents);
+      var boxBody = new CANNON.Body({ mass:0 });
+      boxBody.addShape( boxShape );
+      boxBody.position.set( pos[0], pos[1], pos[2] );
+      boxBody.allowSleep = false;
+      boxBody.fixedRotation = false;
+      app.world.add( boxBody );
+      cannonArray.push( boxBody );
 };
 
 app.initCannon = function() {
@@ -170,69 +226,109 @@ app.initCannon = function() {
 };
 
 app.createBoard = function() {
+      // change points /////////////////////////////////////////////
+      // top to front
+      var size = [ 30, 20, 20 ];
+      var pos = [ -185, 10 , 210];
+      app.addRender( size, pos, 'change' );
+      // front to left
+      size = [ 20, 30, 20 ];
+      pos = [ -210, -385, 210];
+      app.addRender( size, pos, 'change' );
+      // left to back
+      size = [ 20, 30, 20 ];
+      pos = [ -210, -15 , -210];
+      app.addRender( size, pos, 'change' );
+      // back to right
+      size = [ 20, 30, 20 ];
+      pos = [ 210, -385 , -210];
+      app.addRender( size, pos, 'change' );
+      // right to bottom
+      size = [ 20, 20, 30 ];
+      pos = [ 210, -410 , 185];
+      app.addRender( size, pos, 'change' );
+      // // botom to finish
+      // size = [ 25, 20, 20 ];
+      // pos = [ -187.5, 10 , 210];
+      app.addRender( size, pos, 'change' );
+      // main box ///////////////////////////////////
       // add box
-      var size = [ 400, 400, 400 ];
-      var pos = [ 0, -200, 0 ];
-      app.addMap( size, pos, 'ground', 'cube');
+      size = [ 400, 400, 400 ];
+      pos = [ 0, -200, 0 ];
+      app.addCannon( size, pos );
+      app.addRender( size, pos, 'ground');
       // Outer Walls /////////////////////////////////
       // Front Top
       size = [390, 20, 20];
-      pos = [50, 10, 210];
-      app.addMap( size, pos, 'wall', 'top');
+      pos = [25, 10, 210];
+      app.addCannon( size, pos );
+      app.addRender( size, pos, 'wall' );
       // Left Top
       size = [20, 20, 440];
       pos = [-210, 10, 0];
-      app.addMap( size, pos, 'wall', 'top');
+      app.addCannon( size, pos );
+      app.addRender( size, pos, 'wall' );
       // Back Top
       size = [440, 20, 20];
       pos = [0, 10, -210];
-      app.addMap( size, pos, 'wall', 'top');
+      app.addRender( size, pos, 'wall' );
+      app.addCannon( size, pos );
       // Right Top
       size = [20, 20, 440];
       pos = [210, 10, 0];
-      app.addMap( size, pos, 'wall', 'top');
+      app.addRender( size, pos, 'wall' );
+      app.addCannon( size, pos );
       // Left Front
-      size = [20, 440, 20];
-      pos = [-210, -200, 210];
-      app.addMap( size, pos, 'wall', 'front');
+      size = [20, 390, 20];
+      pos = [-210, -175, 210];
+      app.addRender( size, pos, 'wall' );
+      app.addCannon( size, pos );
       // Right Front
       size = [20, 440, 20];
       pos = [210, -200, 210];
-      app.addMap( size, pos, 'wall', 'front');
+      app.addRender( size, pos, 'wall' );
+      app.addCannon( size, pos );
       // Left Back
-      size = [20, 440, 20];
-      pos = [-210, -200, -210];
-      app.addMap( size, pos, 'wall', 'back');
+      size = [20, 390, 20];
+      pos = [-210, -225, -210];
+      app.addRender( size, pos, 'wall' );
+      app.addCannon( size, pos );
       // Right Back
-      size = [20, 440, 20];
-      pos = [210, -200, -210];
-      app.addMap( size, pos, 'wall', 'back');
+      size = [20, 390, 20];
+      pos = [210, -175, -210];
+      app.addRender( size, pos, 'wall' );
+      app.addCannon( size, pos );
       // Front Bottom
       size = [440, 20, 20];
       pos = [0, -410, 210];
-      app.addMap( size, pos, 'wall', 'bottom');
+      app.addRender( size, pos, 'wall' );
+      app.addCannon( size, pos );
       // Left Bottom
       size = [20, 20, 440];
       pos = [-210, -410, 0];
-      app.addMap( size, pos, 'wall', 'bottom');
+      app.addRender( size, pos, 'wall' );
+      app.addCannon( size, pos );
       // Back Bottom
       size = [440, 20, 20];
       pos = [0, -410, -210];
-      app.addMap( size, pos, 'wall', 'bottom');
+      app.addRender( size, pos, 'wall' );
+      app.addCannon( size, pos );
       // Right Bottom
-      size = [20, 20, 440];
-      pos = [210, -410, 0];
-      app.addMap( size, pos, 'wall', 'bottom');
+      size = [20, 20, 390];
+      pos = [210, -410, -25];
+      app.addRender( size, pos, 'wall' );
+      app.addCannon( size, pos );
 
       // add mazes
       for (var i = 0; i < app.mapPos.length; i++) {
-            app.addMap( app.mapSize[i], app.mapPos[i], 'wall' );
+            app.addRender( app.mapSize[i], app.mapPos[i], 'wall' );
+            app.addCannon( app.mapSize[i], app.mapPos[i] );
       }
 };
 
 app.createPiece = function(){
 
-      pos = [0, 300, 50];
+      pos = [-180, 300, -180];
       size = 60;
 
       var ballShape = new CANNON.Sphere(size/6);
@@ -263,14 +359,44 @@ app.animate = function() {
 
 app.updateBodiesAndRender = function() {
       app.world.step(1/60);
+      var board;
+      var index;
+      var nextBoard;
+      if (app.currentSide === 'top') {
+            board = app.boardTop;
+            index = 0;
+            nextBoard = 'front';
+      } else if (app.currentSide === 'front') {
+            board = app.boardFront;
+            index = 1;
+            nextBoard = 'left';
+      } else if (app.currentSide === 'left') {
+            board = app.boardLeft;
+            index = 2;
+            nextBoard = 'back';
+      } else if (app.currentSide === 'back') {
+            board = app.boardBack;
+            index = 3;
+            nextBoard = 'right';
+      } else if (app.currentSide === 'right') {
+            board = app.boardRight;
+            index = 4;
+            nextBoard = 'bottom';
+      } else if (app.currentSide === 'bottom') {
+            board = app.boardBottom;
+            index = 5;
+            nextBoard = 'finish';
+      } else {
+            return;
+      }
 
       // Update pieces position
       for (var i = 0; i < app.threePieces.length; i++ ) {
             app.threePieces[i].position.copy( app.cannonPieces[i].position );
             app.threePieces[i].quaternion.copy( app.cannonPieces[i].quaternion );
       }
-      for (var j = 0; j < app.threeBoard.length; j++ ) {
-            var mesh = app.boardTHREE.children[j];
+      for (var j = 0; j < app.cannonBoard.length; j++ ) {
+            var mesh = board.children[j + 6];
             var body = app.cannonBoard[j];
 
             var position = new THREE.Vector3().setFromMatrixPosition( mesh.matrixWorld );
@@ -279,21 +405,85 @@ app.updateBodiesAndRender = function() {
             body.position.set( position.x, position.y, position.z );
             body.quaternion.set( quaternion.x, quaternion.y, quaternion.z, quaternion.w );
       }
+      var ball = app.threePieces[0].position;
+      var target = new THREE.Vector3().setFromMatrixPosition( board.children[index].matrixWorld );
+
+      if ( ball.x > target.x - 10 && ball.x < target.x + 10 && ball.y < target.y + 10 && ball.y > target.y - 10 && ball.z < target.z + 10 && ball.z > target.z - 10  ) {
+            app.currentSide = nextBoard;
+            app.changeBoard(target.x, target.y, target.z);
+      }
+
       app.renderer.render( app.scene, app.camera );
 };
+
+
 app.moveGround = function (x, y, z) {
  app.currentRotation = { x:x, y:y, z:z};
- //move rendererd group
- app.boardTHREE.rotation.set( app.ToRad * x, app.ToRad * y, app.ToRad * z);
+ var board;
+ if ( app.currentSide === 'top' ) {
+       board = app.boardTop;
+ } else if ( app.currentSide === 'front' ) {
+       board = app.boardFront;
+ } else if ( app.currentSide === 'left' ) {
+       board = app.boardLeft;
+ } else if ( app.currentSide === 'back' ) {
+       board = app.boardBack;
+ } else if ( app.currentSide === 'right' ) {
+       board = app.boardRight;
+ } else if ( app.currentSide === 'bottom' ) {
+       board = app.boardBottom;
+ }
+ board.rotation.set( app.ToRad * x, app.ToRad * y, app.ToRad * z);
  app.updateBodiesAndRender();
- // app.boardBodys[0].resetRotation(x,y,z);
+
+};
+
+app.leftTilt = function(type) {
+      if ( app.currentSide === 'top' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z + app.MoveDeg(type));
+      } else if ( app.currentSide === 'bottom' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z - app.MoveDeg(type));
+      } else if ( app.currentSide === 'front' || app.currentSide === 'back' || app.currentSide === 'right' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y - app.MoveDeg(type), app.currentRotation.z );
+      } else if ( app.currentSide === 'left' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z - app.MoveDeg(type));
+      }
+};
+app.rightTilt = function(type) {
+      if ( app.currentSide === 'top' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z - app.MoveDeg(type));
+      } else if ( app.currentSide === 'bottom' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z + app.MoveDeg(type));
+      } else if ( app.currentSide === 'front' || app.currentSide === 'back' || app.currentSide === 'right' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y + app.MoveDeg(type), app.currentRotation.z );
+      } else if ( app.currentSide === 'left' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z + app.MoveDeg(type) );
+      }
+};
+app.backTilt = function(type) {
+      if ( app.currentSide === 'top' || app.currentSide === 'bottom' || app.currentSide === 'front' || app.currentSide === 'back') {
+            app.moveGround(app.currentRotation.x - app.MoveDeg(type), app.currentRotation.y, app.currentRotation.z);
+      } else if ( app.currentSide === 'left' ) {
+            app.moveGround(app.currentRotation.x - app.MoveDeg(type), app.currentRotation.y, app.currentRotation.z );
+      } else if ( app.currentSide === 'right' ) {
+            app.moveGround(app.currentRotation.x + app.MoveDeg(type) , app.currentRotation.y, app.currentRotation.z);
+      }
+};
+app.frontTilt = function(type) {
+      if ( app.currentSide === 'top' || app.currentSide === 'bottom' || app.currentSide === 'front' || app.currentSide === 'back') {
+            app.moveGround(app.currentRotation.x + app.MoveDeg(type), app.currentRotation.y, app.currentRotation.z );
+      } else if ( app.currentSide === 'left' ) {
+            app.moveGround(app.currentRotation.x + app.MoveDeg(type) , app.currentRotation.y, app.currentRotation.z);
+      } else if ( app.currentSide === 'right' ) {
+            app.moveGround(app.currentRotation.x - app.MoveDeg(type) , app.currentRotation.y, app.currentRotation.z);
+      }
 };
 
 app.MoveDeg = function(type) {
       if ( type === 'key') {
             return 1;
       } else if (type === 'mouse') {
-            return 1;
+            return 0.5;
       } else if ( type === 'mobile') {
             return 2;
       }
@@ -389,22 +579,22 @@ app.webControls = function() {
        if (e.keyCode === 37) {  //left key
             e.preventDefault();
             e.stopPropagation();
-            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z + app.MoveDeg('key'));
+            app.leftTilt('key');
        }
        else if (e.keyCode === 38) {  // up key
             e.preventDefault();
             e.stopPropagation();
-            app.moveGround(app.currentRotation.x - app.MoveDeg('key'), app.currentRotation.y, app.currentRotation.z);
+            app.backTilt('key');
        }
        else if (e.keyCode === 39) {  // right key
             e.preventDefault();
             e.stopPropagation();
-            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z - app.MoveDeg('key'));
+            app.rightTilt('key');
        }
        else if (e.keyCode === 40) {   // down key
             e.preventDefault();
             e.stopPropagation();
-            app.moveGround(app.currentRotation.x + app.MoveDeg('key'), app.currentRotation.y, app.currentRotation.z);
+            app.frontTilt('key');
        }
       });
 
@@ -413,23 +603,23 @@ app.webControls = function() {
       app.xMoveDegInPix = window.innerWidth / (180/1);
       app.zMoveDegInPix = window.innerHeight / (180/1);
 
-      // document.onmousemove = function(e) {
-      //  if (document.mousedown === true) {
-      //       return;
-      // } else if (app.mousePosition.x + app.xMoveDegInPix < e.screenX) { // right mouse
-      //       app.mousePosition.x = e.screenX;
-      //       app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z - app.MoveDeg('mouse'));
-      // } else if (app.mousePosition.x - app.xMoveDegInPix > e.screenX) {  // left mouse
-      //       app.mousePosition.x = e.screenX;
-      //       app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z + app.MoveDeg('mouse'));
-      // } else if (app.mousePosition.y + app.zMoveDegInPix < e.screenY) {  // down mouse
-      //       app.mousePosition.y = e.screenY;
-      //       app.moveGround(app.currentRotation.x + app.MoveDeg('mouse'), app.currentRotation.y, app.currentRotation.z);
-      // } else if (app.mousePosition.y - app.zMoveDegInPix > e.screenY) {   // up mouse
-      //       app.mousePosition.y = e.screenY;
-      //       app.moveGround(app.currentRotation.x - app.MoveDeg('mouse'), app.currentRotation.y, app.currentRotation.z);
-      //  }
-      // };
+      document.onmousemove = function(e) {
+       if (document.mousedown === true) {
+            return;
+      } else if (app.mousePosition.x + app.xMoveDegInPix < e.screenX) { // right mouse
+            app.mousePosition.x = e.screenX;
+            app.rightTilt('mouse');
+      } else if (app.mousePosition.x - app.xMoveDegInPix > e.screenX) {  // left mouse
+            app.mousePosition.x = e.screenX;
+            app.leftTilt('mouse');
+      } else if (app.mousePosition.y + app.zMoveDegInPix < e.screenY) {  // down mouse
+            app.mousePosition.y = e.screenY;
+            app.frontTilt('mouse');
+      } else if (app.mousePosition.y - app.zMoveDegInPix > e.screenY) {   // up mouse
+            app.mousePosition.y = e.screenY;
+            app.backTilt('mouse');
+       }
+      };
 };
 
 app.mobileControls = function() {
@@ -438,16 +628,16 @@ app.mobileControls = function() {
       var accelerometer = function(e) {
             if (app.beta + 5 < e.beta) {
                   app.beta = e.beta;
-                  app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z - app.MoveDeg('mobile'));
+                  app.rightTilt('mobile');
             } else if ( app.beta - 5 > e.beta ) {
                   app.beta = e.beta;
-                  app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z + app.MoveDeg('mobile'));
+                  app.leftTilt('mobile');
             } else if ( app.gamma + 5 < e.gamma ) {
                   app.gamma = e.gamma;
-                  app.moveGround(app.currentRotation.x - app.MoveDeg('mobile'), app.currentRotation.y, app.currentRotation.z);
+                  app.backTilt('mobile');
             } else if ( app.gamma - 5 > e.gamma ) {
                   app.gamma = e.gamma;
-                  app.moveGround(app.currentRotation.x + app.MoveDeg('mobile'), app.currentRotation.y, app.currentRotation.z);
+                  app.frontTilt('mobile');
             }
       };
       window.addEventListener("deviceorientation", accelerometer, true);
