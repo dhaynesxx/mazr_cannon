@@ -436,7 +436,7 @@ app.animate = function() {
 /////////////  initial Animation ////////////////////////////////////////////
 
 app.initAnimate = function() {
-      if ( app.counter === 0  ) {
+      if ( app.counter === 550  ) {
             app.camera.position.set(0, 400, 300);
             app.camera.lookAt(app.scene.position);
             app.light.position.set(0, 400, 300);
