@@ -59,8 +59,8 @@ app.init = function() {
       app.renderer = new THREE.WebGLRenderer({canvas:app.canvas, precision: "mediump", antialias:true});
       app.renderer.setSize( window.innerWidth, window.innerHeight );
 
-      app.axes = new THREE.AxisHelper(400);
-      app.scene.add( app.axes );
+      // app.axes = new THREE.AxisHelper(400);
+      // app.scene.add( app.axes );
 
       app.boardTop = new THREE.Object3D();
       app.boardTop.castShadow = true;
