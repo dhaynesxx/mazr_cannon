@@ -1,5 +1,7 @@
 var app = app || {};
 
+/////////////  set up variables  ////////////////////////////////////////////
+
 app.threePieces = [];
 app.cannonPieces = [];
 app.threeBoard = [];
@@ -15,6 +17,12 @@ app.currentRotation = { x:0, y:0, z:0};
 app.mousePosition = { x: 0, y: 0};
 app.ToRad = Math.PI / 180;
 app.ToDeg = 180 / Math.PI;
+
+app.numParticles = 10000;
+app.particleDistribution = 2000;
+
+/////////////  initialize Three  ////////////////////////////////////////////
+
 
 app.init = function() {
       app.canvas = document.getElementById("canvas");
@@ -44,6 +52,9 @@ app.init = function() {
       //light.shadowCameraVisible = true;
       app.light.shadowMapWidth = app.light.shadowMapHeight = 1024;
       app.scene.add( app.light );
+
+      app.particleSystem = app.createParticleSystem();
+      app.scene.add( app.particleSystem );
 
       app.renderer = new THREE.WebGLRenderer({canvas:app.canvas, precision: "mediump", antialias:true});
       app.renderer.setSize( window.innerWidth, window.innerHeight );
@@ -85,6 +96,84 @@ app.init = function() {
 
       app.initCannon();
 };
+
+/////////////  initialize cannon world ////////////////////////////////////////
+
+
+app.initCannon = function() {
+      // Setup our world
+      app.world = new CANNON.World();
+      app.world.quatNormalizeSkip = 0;
+      app.world.quatNormalizeFast = false;
+
+      app.solver = new CANNON.GSSolver();
+
+      app.world.defaultContactMaterial.contactEquationStiffness = 1e9;
+      app.world.defaultContactMaterial.contactEquationRelaxation = 4;
+
+      app.solver.iterations = 7;
+      app.solver.tolerance = 0.1;
+      var split = true;
+      if(split)
+          app.world.solver = new CANNON.SplitSolver(app.solver);
+      else
+          app.world.solver = app.solver;
+
+      app.world.gravity.set(0,-500,0);
+      app.world.broadphase = new CANNON.NaiveBroadphase();
+
+      // Create a slippery material (friction coefficient = 0.0)
+      var physicsMaterial = new CANNON.Material("slipperyMaterial");
+      var physicsContactMaterial = new CANNON.ContactMaterial(physicsMaterial,
+                                                              physicsMaterial,
+                                                              [0.4, // friction coefficient
+                                                              0.4]  // restitution
+                                                              );
+      // We must add the contact materials to the world
+      app.world.addContactMaterial(physicsContactMaterial);
+
+      app.createBoard();
+};
+
+/////////////  stars  ////////////////////////////////////////////
+
+
+app.createParticleSystem = function() {
+
+    var particles = new THREE.Geometry();
+
+    for (var p = 0; p < app.numParticles; p++) {
+        var x = (Math.random() * app.particleDistribution + 500) - (app.particleDistribution + 500)/2;
+        var y = (Math.random() * app.particleDistribution + 500) - (app.particleDistribution + 500)/2;
+        var z = (Math.random() * app.particleDistribution + 500) - (app.particleDistribution + 500)/2;
+
+        var particle = new THREE.Vector3(x,y,z);
+
+        particle.vx = Math.random() * 0.2 - 0.1;
+        particle.vy = Math.random() * 0.2 - 0.1;
+        particle.vz = Math.random() * 0.2 - 0.1;
+
+        particles.vertices.push( particle );
+    }
+
+    var particlesMaterial = new THREE.PointsMaterial({
+        color: 0xFFFFFF,
+        size: 10,
+        map: THREE.ImageUtils.loadTexture('snowflake.png'),
+        blending: THREE.AdditiveBlending,
+        transparent: true,
+        alphaTest: 0.5
+
+    });
+
+    var particleSystem = new THREE.Points( particles, particlesMaterial );
+
+    return particleSystem;
+
+};
+
+/////////////  switch boards  ////////////////////////////////////////////
+
 
 app.changeBoard = function(x,y,z) {
       if (app.currentSide === 'front') {
@@ -140,6 +229,9 @@ app.changeBoard = function(x,y,z) {
       }
 };
 
+/////////////  add Three element  ////////////////////////////////////////////
+
+
 app.addRender = function(size, pos, type ) {
 
       var boxGeometry = new THREE.BoxGeometry(size[0],size[1],size[2]);
@@ -152,9 +244,15 @@ app.addRender = function(size, pos, type ) {
             boxMaterial = new THREE.MeshLambertMaterial({
                 color: 0xFF69B4
             });
+      } else if (type === 'maze') {
+            boxMaterial = new THREE.MeshLambertMaterial({
+                color: 0xFF69B4
+            });
       } else if (type === 'change') {
             boxMaterial = new THREE.MeshLambertMaterial({
-                color: 0xADD8E6
+                color: 0xADD8E6,
+                transparent: true,
+                opacity: 0
             });
       }
       var topMesh = new THREE.Mesh( boxGeometry, boxMaterial );
@@ -177,6 +275,9 @@ app.addRender = function(size, pos, type ) {
       app.boardRight.add ( rightMesh );
 };
 
+/////////////  add cannon element  ////////////////////////////////////////////
+
+
 app.addCannon = function(size, pos) {
       var cannonArray = app.cannonBoard;
       var halfExtents = new CANNON.Vec3(size[0]/2,size[1]/2,size[2]/2);
@@ -190,40 +291,9 @@ app.addCannon = function(size, pos) {
       cannonArray.push( boxBody );
 };
 
-app.initCannon = function() {
-      // Setup our world
-      app.world = new CANNON.World();
-      app.world.quatNormalizeSkip = 0;
-      app.world.quatNormalizeFast = false;
 
-      app.solver = new CANNON.GSSolver();
+/////////////  create the cube and walls ////////////////////////////////////////
 
-      app.world.defaultContactMaterial.contactEquationStiffness = 1e9;
-      app.world.defaultContactMaterial.contactEquationRelaxation = 4;
-
-      app.solver.iterations = 7;
-      app.solver.tolerance = 0.1;
-      var split = true;
-      if(split)
-          app.world.solver = new CANNON.SplitSolver(app.solver);
-      else
-          app.world.solver = app.solver;
-
-      app.world.gravity.set(0,-500,0);
-      app.world.broadphase = new CANNON.NaiveBroadphase();
-
-      // Create a slippery material (friction coefficient = 0.0)
-      var physicsMaterial = new CANNON.Material("slipperyMaterial");
-      var physicsContactMaterial = new CANNON.ContactMaterial(physicsMaterial,
-                                                              physicsMaterial,
-                                                              [0.4, // friction coefficient
-                                                              0.4]  // restitution
-                                                              );
-      // We must add the contact materials to the world
-      app.world.addContactMaterial(physicsContactMaterial);
-
-      app.createBoard();
-};
 
 app.createBoard = function() {
       // change points /////////////////////////////////////////////
@@ -321,10 +391,13 @@ app.createBoard = function() {
 
       // add mazes
       for (var i = 0; i < app.mapPos.length; i++) {
-            app.addRender( app.mapSize[i], app.mapPos[i], 'wall' );
+            app.addRender( app.mapSize[i], app.mapPos[i], 'maze' );
             app.addCannon( app.mapSize[i], app.mapPos[i] );
       }
 };
+
+/////////////  create ball ////////////////////////////////////////////
+
 
 app.createPiece = function(){
 
@@ -351,143 +424,17 @@ app.createPiece = function(){
 
 };
 
+/////////////  run animate ////////////////////////////////////////////
+
 app.animate = function() {
       app.scene.updateMatrixWorld();
       app.updateBodiesAndRender();
       requestAnimationFrame( app.animate );
 };
 
-app.updateBodiesAndRender = function() {
-      app.world.step(1/60);
-      var board;
-      var index;
-      var nextBoard;
-      if (app.currentSide === 'top') {
-            board = app.boardTop;
-            index = 0;
-            nextBoard = 'front';
-      } else if (app.currentSide === 'front') {
-            board = app.boardFront;
-            index = 1;
-            nextBoard = 'left';
-      } else if (app.currentSide === 'left') {
-            board = app.boardLeft;
-            index = 2;
-            nextBoard = 'back';
-      } else if (app.currentSide === 'back') {
-            board = app.boardBack;
-            index = 3;
-            nextBoard = 'right';
-      } else if (app.currentSide === 'right') {
-            board = app.boardRight;
-            index = 4;
-            nextBoard = 'bottom';
-      } else if (app.currentSide === 'bottom') {
-            board = app.boardBottom;
-            index = 5;
-            nextBoard = 'finish';
-      } else {
-            return;
-      }
 
-      // Update pieces position
-      for (var i = 0; i < app.threePieces.length; i++ ) {
-            app.threePieces[i].position.copy( app.cannonPieces[i].position );
-            app.threePieces[i].quaternion.copy( app.cannonPieces[i].quaternion );
-      }
-      for (var j = 0; j < app.cannonBoard.length; j++ ) {
-            var mesh = board.children[j + 6];
-            var body = app.cannonBoard[j];
+/////////////  initial Animation ////////////////////////////////////////////
 
-            var position = new THREE.Vector3().setFromMatrixPosition( mesh.matrixWorld );
-            var quaternion = new THREE.Quaternion().setFromRotationMatrix(mesh.matrixWorld);
-
-            body.position.set( position.x, position.y, position.z );
-            body.quaternion.set( quaternion.x, quaternion.y, quaternion.z, quaternion.w );
-      }
-      var ball = app.threePieces[0].position;
-      var target = new THREE.Vector3().setFromMatrixPosition( board.children[index].matrixWorld );
-
-      if ( ball.x > target.x - 10 && ball.x < target.x + 10 && ball.y < target.y + 10 && ball.y > target.y - 10 && ball.z < target.z + 10 && ball.z > target.z - 10  ) {
-            app.currentSide = nextBoard;
-            app.changeBoard(target.x, target.y, target.z);
-      }
-
-      app.renderer.render( app.scene, app.camera );
-};
-
-
-app.moveGround = function (x, y, z) {
- app.currentRotation = { x:x, y:y, z:z};
- var board;
- if ( app.currentSide === 'top' ) {
-       board = app.boardTop;
- } else if ( app.currentSide === 'front' ) {
-       board = app.boardFront;
- } else if ( app.currentSide === 'left' ) {
-       board = app.boardLeft;
- } else if ( app.currentSide === 'back' ) {
-       board = app.boardBack;
- } else if ( app.currentSide === 'right' ) {
-       board = app.boardRight;
- } else if ( app.currentSide === 'bottom' ) {
-       board = app.boardBottom;
- }
- board.rotation.set( app.ToRad * x, app.ToRad * y, app.ToRad * z);
- app.updateBodiesAndRender();
-
-};
-
-app.leftTilt = function(type) {
-      if ( app.currentSide === 'top' ) {
-            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z + app.MoveDeg(type));
-      } else if ( app.currentSide === 'bottom' ) {
-            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z - app.MoveDeg(type));
-      } else if ( app.currentSide === 'front' || app.currentSide === 'back' || app.currentSide === 'right' ) {
-            app.moveGround(app.currentRotation.x, app.currentRotation.y - app.MoveDeg(type), app.currentRotation.z );
-      } else if ( app.currentSide === 'left' ) {
-            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z - app.MoveDeg(type));
-      }
-};
-app.rightTilt = function(type) {
-      if ( app.currentSide === 'top' ) {
-            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z - app.MoveDeg(type));
-      } else if ( app.currentSide === 'bottom' ) {
-            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z + app.MoveDeg(type));
-      } else if ( app.currentSide === 'front' || app.currentSide === 'back' || app.currentSide === 'right' ) {
-            app.moveGround(app.currentRotation.x, app.currentRotation.y + app.MoveDeg(type), app.currentRotation.z );
-      } else if ( app.currentSide === 'left' ) {
-            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z + app.MoveDeg(type) );
-      }
-};
-app.backTilt = function(type) {
-      if ( app.currentSide === 'top' || app.currentSide === 'bottom' || app.currentSide === 'front' || app.currentSide === 'back') {
-            app.moveGround(app.currentRotation.x - app.MoveDeg(type), app.currentRotation.y, app.currentRotation.z);
-      } else if ( app.currentSide === 'left' ) {
-            app.moveGround(app.currentRotation.x - app.MoveDeg(type), app.currentRotation.y, app.currentRotation.z );
-      } else if ( app.currentSide === 'right' ) {
-            app.moveGround(app.currentRotation.x + app.MoveDeg(type) , app.currentRotation.y, app.currentRotation.z);
-      }
-};
-app.frontTilt = function(type) {
-      if ( app.currentSide === 'top' || app.currentSide === 'bottom' || app.currentSide === 'front' || app.currentSide === 'back') {
-            app.moveGround(app.currentRotation.x + app.MoveDeg(type), app.currentRotation.y, app.currentRotation.z );
-      } else if ( app.currentSide === 'left' ) {
-            app.moveGround(app.currentRotation.x + app.MoveDeg(type) , app.currentRotation.y, app.currentRotation.z);
-      } else if ( app.currentSide === 'right' ) {
-            app.moveGround(app.currentRotation.x - app.MoveDeg(type) , app.currentRotation.y, app.currentRotation.z);
-      }
-};
-
-app.MoveDeg = function(type) {
-      if ( type === 'key') {
-            return 1;
-      } else if (type === 'mouse') {
-            return 0.5;
-      } else if ( type === 'mobile') {
-            return 2;
-      }
-};
 app.initAnimate = function() {
       if ( app.counter === 0  ) {
             app.camera.position.set(0, 400, 300);
@@ -572,6 +519,149 @@ app.initAnimate = function() {
       app.renderer.render( app.scene, app.camera );
       requestAnimationFrame( app.initAnimate );
 };
+
+/////////////  apply movement changes to render and world /////////////////////////
+
+
+app.updateBodiesAndRender = function() {
+      app.world.step(1/60);
+      var board;
+      var index;
+      var nextBoard;
+      if (app.currentSide === 'top') {
+            board = app.boardTop;
+            index = 0;
+            nextBoard = 'front';
+      } else if (app.currentSide === 'front') {
+            board = app.boardFront;
+            index = 1;
+            nextBoard = 'left';
+      } else if (app.currentSide === 'left') {
+            board = app.boardLeft;
+            index = 2;
+            nextBoard = 'back';
+      } else if (app.currentSide === 'back') {
+            board = app.boardBack;
+            index = 3;
+            nextBoard = 'right';
+      } else if (app.currentSide === 'right') {
+            board = app.boardRight;
+            index = 4;
+            nextBoard = 'bottom';
+      } else if (app.currentSide === 'bottom') {
+            board = app.boardBottom;
+            index = 5;
+            nextBoard = 'finish';
+      } else {
+            return;
+      }
+
+      // Update pieces position
+      for (var i = 0; i < app.threePieces.length; i++ ) {
+            app.threePieces[i].position.copy( app.cannonPieces[i].position );
+            app.threePieces[i].quaternion.copy( app.cannonPieces[i].quaternion );
+      }
+      for (var j = 0; j < app.cannonBoard.length; j++ ) {
+            var mesh = board.children[j + 6];
+            var body = app.cannonBoard[j];
+
+            var position = new THREE.Vector3().setFromMatrixPosition( mesh.matrixWorld );
+            var quaternion = new THREE.Quaternion().setFromRotationMatrix(mesh.matrixWorld);
+
+            body.position.set( position.x, position.y, position.z );
+            body.quaternion.set( quaternion.x, quaternion.y, quaternion.z, quaternion.w );
+      }
+      var ball = app.threePieces[0].position;
+      var target = new THREE.Vector3().setFromMatrixPosition( board.children[index].matrixWorld );
+
+      if ( ball.x > target.x - 10 && ball.x < target.x + 10 && ball.y < target.y + 10 && ball.y > target.y - 10 && ball.z < target.z + 10 && ball.z > target.z - 10  ) {
+            app.currentSide = nextBoard;
+            app.changeBoard(target.x, target.y, target.z);
+      }
+
+      app.renderer.render( app.scene, app.camera );
+};
+
+/////////////  adjust rotation for move ////////////////////////////////////////////
+
+
+app.moveGround = function (x, y, z) {
+ app.currentRotation = { x:x, y:y, z:z};
+ var board;
+ if ( app.currentSide === 'top' ) {
+       board = app.boardTop;
+ } else if ( app.currentSide === 'front' ) {
+       board = app.boardFront;
+ } else if ( app.currentSide === 'left' ) {
+       board = app.boardLeft;
+ } else if ( app.currentSide === 'back' ) {
+       board = app.boardBack;
+ } else if ( app.currentSide === 'right' ) {
+       board = app.boardRight;
+ } else if ( app.currentSide === 'bottom' ) {
+       board = app.boardBottom;
+ }
+ board.rotation.set( app.ToRad * x, app.ToRad * y, app.ToRad * z);
+ app.updateBodiesAndRender();
+
+};
+
+/////////////  degrees of movement ////////////////////////////////////////////
+
+app.MoveDeg = function(type) {
+      if ( type === 'key') {
+            return 1;
+      } else if (type === 'mouse') {
+            return 0.5;
+      } else if ( type === 'mobile') {
+            return 2;
+      }
+};
+
+/////////////  movement functions ////////////////////////////////////////////
+
+app.leftTilt = function(type) {
+      if ( app.currentSide === 'top' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z + app.MoveDeg(type));
+      } else if ( app.currentSide === 'bottom' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z - app.MoveDeg(type));
+      } else if ( app.currentSide === 'front' || app.currentSide === 'back' || app.currentSide === 'right' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y - app.MoveDeg(type), app.currentRotation.z );
+      } else if ( app.currentSide === 'left' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z - app.MoveDeg(type));
+      }
+};
+app.rightTilt = function(type) {
+      if ( app.currentSide === 'top' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z - app.MoveDeg(type));
+      } else if ( app.currentSide === 'bottom' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z + app.MoveDeg(type));
+      } else if ( app.currentSide === 'front' || app.currentSide === 'back' || app.currentSide === 'right' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y + app.MoveDeg(type), app.currentRotation.z );
+      } else if ( app.currentSide === 'left' ) {
+            app.moveGround(app.currentRotation.x, app.currentRotation.y, app.currentRotation.z + app.MoveDeg(type) );
+      }
+};
+app.backTilt = function(type) {
+      if ( app.currentSide === 'top' || app.currentSide === 'bottom' || app.currentSide === 'front' || app.currentSide === 'back') {
+            app.moveGround(app.currentRotation.x - app.MoveDeg(type), app.currentRotation.y, app.currentRotation.z);
+      } else if ( app.currentSide === 'left' ) {
+            app.moveGround(app.currentRotation.x - app.MoveDeg(type), app.currentRotation.y, app.currentRotation.z );
+      } else if ( app.currentSide === 'right' ) {
+            app.moveGround(app.currentRotation.x + app.MoveDeg(type) , app.currentRotation.y, app.currentRotation.z);
+      }
+};
+app.frontTilt = function(type) {
+      if ( app.currentSide === 'top' || app.currentSide === 'bottom' || app.currentSide === 'front' || app.currentSide === 'back') {
+            app.moveGround(app.currentRotation.x + app.MoveDeg(type), app.currentRotation.y, app.currentRotation.z );
+      } else if ( app.currentSide === 'left' ) {
+            app.moveGround(app.currentRotation.x + app.MoveDeg(type) , app.currentRotation.y, app.currentRotation.z);
+      } else if ( app.currentSide === 'right' ) {
+            app.moveGround(app.currentRotation.x - app.MoveDeg(type) , app.currentRotation.y, app.currentRotation.z);
+      }
+};
+
+    /////////////  movement event functions ////////////////////////////////////
 
 app.webControls = function() {
       /////////////  Keyboard moves ////////////////////////////////////////////
